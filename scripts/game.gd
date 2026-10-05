@@ -510,16 +510,17 @@ func simulate(delta: float) -> void:
 func _update_plants(delta: float) -> void:
 	for plant in plants.duplicate():
 		plant.attack -= delta
-		plant.produce -= delta
+		if should_auto_produce(plant): plant.produce -= delta
 		var center := cell_center(plant.cell)
 		if plant.kind == "peashooter" and plant.windup >= 0:
 			plant.windup -= delta
 			if plant.windup <= 0:
 				var muzzle: Vector2 = plant.art.get_meta("view").muzzle_position()
-				fire_pea(plant.cell.y, muzzle.x, muzzle.y)
+				var pea := fire_pea(plant.cell.y, muzzle.x, muzzle.y)
+				configure_plant_pea(pea, plant)
 				_play_sound("throw" if randf() < 0.5 else "throw2")
 				plant.windup = -1.0
-		if plant.kind == "sunflower" and plant.produce <= 0:
+		if plant.kind == "sunflower" and plant.produce <= 0 and should_auto_produce(plant):
 			spawn_sun(center + Vector2(5, -35))
 			plant.produce += 24.0
 		elif plant.kind == "peashooter" and plant.attack <= 0 and should_auto_attack(plant):
@@ -531,6 +532,14 @@ func _update_plants(delta: float) -> void:
 
 func should_auto_attack(_plant: Dictionary) -> bool:
 	return true
+
+
+func should_auto_produce(_plant: Dictionary) -> bool:
+	return true
+
+
+func configure_plant_pea(pea: Dictionary, _plant: Dictionary) -> void:
+	pea["damage"] = 20
 
 
 func begin_plant_attack(plant: Dictionary) -> bool:
@@ -558,7 +567,7 @@ func _update_projectiles(delta: float) -> void:
 				nearest = zombie.x
 		if not target.is_empty():
 			_pea_splat(Vector2(target.x - 12, pea.art.position.y), pea.row)
-			damage_zombie(target, 20)
+			damage_zombie(target, float(pea.get("damage", 20)))
 			_play_sound("splat")
 			_remove_entity(projectiles, pea)
 		elif pea.x > 890:

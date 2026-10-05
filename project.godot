@@ -1,8 +1,8 @@
 config_version=5
 
 [application]
-config/name="PVZ1 · Mod 手动操控原型"
-config/version="mod-v0.1.0"
+config/name="PVZ1 · Mod 长按与连锁初版"
+config/version="mod-v0.2.0-local"
 run/main_scene="res://scenes/mod_game.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/use_custom_user_dir=true

@@ -4,22 +4,29 @@ extends RefCounted
 
 var enabled := true
 var fire_held := false
+var mouse_held := false
 var selected_plant: Dictionary = {}
 
 func can_control(plant: Dictionary) -> bool:
-	return plant.get("kind", "") == "peashooter"
+	return plant.get("kind", "") in ["peashooter", "sunflower"]
 
 func requires_input(plant: Dictionary) -> bool:
 	return enabled and can_control(plant)
 
 func select(plant: Dictionary, living_plants: Array) -> bool:
 	if not enabled or not living_plants.has(plant) or not can_control(plant): return false
+	if selected_plant != plant: release()
 	selected_plant = plant
 	return true
 
 func clear() -> void:
+	release()
 	selected_plant = {}
+
+func release() -> void:
+	if not selected_plant.is_empty(): selected_plant["charge"] = 0.0
 	fire_held = false
+	mouse_held = false
 
 func validate(living_plants: Array) -> void:
 	if not selected_plant.is_empty() and not living_plants.has(selected_plant): clear()
@@ -33,5 +40,4 @@ func cycle(living_plants: Array) -> bool:
 		clear()
 		return false
 	var index := candidates.find(selected_plant)
-	selected_plant = candidates[(index + 1) % candidates.size()]
-	return true
+	return select(candidates[(index + 1) % candidates.size()], living_plants)
