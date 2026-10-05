@@ -1,0 +1,14 @@
+.godot/
+.source_assets/
+assets/
+build/
+*.log
+versions/
+__pycache__/
+*.py[cod]
+*.import
+.env
+.env.*
+credentials*
+secrets*
+docs/original-particle-reference.json
