@@ -30,6 +30,7 @@ func mouse(pos: Vector2, pressed: bool) -> void:
 	viewport.push_input(event, true)
 
 func snapshot(name: String) -> Image:
+	game._update_hud()
 	for frame in 2: await process_frame
 	await RenderingServer.frame_post_draw
 	var result := viewport.get_texture().get_image()
@@ -83,19 +84,42 @@ func run_tests() -> void:
 	mouse(game.cell_center(flower.cell), true)
 	step(2.4)
 	mouse(game.cell_center(flower.cell), false)
-	check(game.suns.size() == 3 and flower.auto_until > game.elapsed, "real sunflower hold starts neighboring supply and rank reward")
+	check(game.suns.is_empty() and flower.sun_state == "work" and game.plants[-1].sun_state == "weak_work", "real sunflower hold activates Work and neighboring Weak Work without instant sun")
+	step(8.05)
+	check(game.suns.size() == 3 and game.suns[0].value == 35, "activated plants produce while the mouse is released")
 	await snapshot("mod-supply")
 	# Real mouse-driven completed rounds launch one synchronized row volley.
 	mouse(game.cell_center(pea.cell), true)
-	step(2.65)
+	step(3.6)
 	mouse(game.cell_center(pea.cell), false)
-	check(game.projectiles.size() >= 3 and game.row_rounds[0] == 0, "sustained real mouse input completes row-linked volleys")
+	check(pea.windup > 0 and game.plants[1].windup > 0 and game.row_energy[0] == 0, "sustained real mouse input completes three-round rank-one volley")
+	step(0.37)
+	check(game.projectiles.size() >= 2, "mouse-driven linked windups release real synchronized projectiles")
 	await snapshot("mod-linked")
 	for sun in game.suns.duplicate(): game.collect_sun(sun)
 	game.select_seed("shovel")
 	mouse(game.cell_center(flower.cell), true)
 	mouse(game.cell_center(flower.cell), false)
 	check(not game.plants.has(flower), "real shovel click removes an upgraded plant")
+	game.select_seed("")
+	game.cooldowns.sunflower = 0
+	game.try_plant("sunflower", Vector2i(6, 0))
+	var top: Dictionary = game.plants[-1]
+	mouse(game.cell_center(top.cell), true)
+	step(2.3)
+	var hat: Sprite2D = top.rank_hat
+	var top_y := INF
+	for rank in 3:
+		hat.set_rank(rank + 1)
+		var rect := hat.get_rect()
+		for corner in [rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]:
+			top_y = minf(top_y, hat.to_global(corner).y)
+	hat.set_rank(top.rank)
+	check(top_y >= 86, "charged first-row sunflower cap stays below the seed bank (top %.2f)" % top_y)
+	check(not top.rank_badge.visible and not top.production_meter.visible and game.charge_bar.visible, "first-row sunflower charge replaces overlapping bottom indicators")
+	mouse(game.cell_center(top.cell), false)
+	check(top.rank_badge.visible and top.production_meter.visible and not game.charge_bar.visible, "first-row sunflower restores its stopped production indicators on release")
+	await snapshot("mod-top-row")
 	viewport.free()
 	await process_frame
 	print("Mod mouse/GPU checks: %d; failures: %d" % [checks, failures])

@@ -2,12 +2,13 @@ extends "res://scripts/game.gd"
 ## Charged actions, ranks and non-recursive networks. Local Mod prototype.
 const PlantControl := preload("res://scripts/plant_control.gd")
 const Rules := preload("res://scripts/mod_rules.gd")
+const Hat := preload("res://scripts/rank_hat.gd")
 var control = PlantControl.new()
 var control_label: Label
 var mode_button: Button
 var control_marker: Line2D
 var charge_bar: ProgressBar
-var row_rounds := [0, 0, 0, 0, 0]
+var row_energy := [0, 0, 0, 0, 0]
 
 func _build_hud() -> void:
 	super._build_hud()
@@ -104,6 +105,7 @@ func try_plant(kind: String, cell: Vector2i) -> bool:
 		sun_count -= DEFINITIONS[kind].cost
 		cooldowns[kind] = DEFINITIONS[kind].cooldown
 		plant.rank += 1
+		plant.rank_hat.set_rank(plant.rank)
 		plant.pulse = 0.18
 		_play_sound("plant")
 		select_seed("")
@@ -112,21 +114,45 @@ func try_plant(kind: String, cell: Vector2i) -> bool:
 		return true
 	if not super.try_plant(kind, cell): return false
 	var plant: Dictionary = plants[-1]
-	plant.merge({"rank": 1, "charge": 0.0, "sun_ready": 0.0, "auto_until": 0.0,
+	# Reserve room for the cap below the seed bank in the top row.
+	if cell.y == 0 and control.can_control(plant): plant.art.position.y += 14
+	plant.merge({"rank": 1, "charge": 0.0, "sun_ready": Rules.SUN_INTERVAL, "auto_until": 0.0,
 		"full_until": 0.0, "linked_until": 0.0,
-		"auto_next": 0.0, "auto_efficiency": 1.0, "sun_fraction": 0.0, "pulse": 0.0,
+		"sun_state": Rules.SUN_STOP, "auto_efficiency": 0.0, "sun_fraction": 0.0, "pulse": 0.0,
 		"base_position": plant.art.position})
 	if control.can_control(plant):
 		var badge := Label.new()
 		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		badge.z_index = 181
-		badge.add_theme_font_size_override("font_size", 12)
+		badge.add_theme_font_size_override("font_size", 10)
 		badge.add_theme_color_override("font_color", Color(1, 0.9, 0.3))
 		badge.add_theme_color_override("font_outline_color", Color(0.15, 0.1, 0.02))
 		badge.add_theme_constant_override("outline_size", 3)
-		badge.position = cell_center(cell) + Vector2(18, -46)
+		badge.position = cell_center(cell) + Vector2(-28, 30 + (14 if cell.y == 0 else 0))
+		badge.size = Vector2(56, 16)
+		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		badge.visible = kind == "sunflower"
 		add_child(badge)
 		plant["rank_badge"] = badge
+		var hat := Hat.new()
+		hat.setup(plant.art, kind, cell.y == 0)
+		plant["rank_hat"] = hat
+		if kind == "sunflower":
+			var meter := ProgressBar.new()
+			meter.show_percentage = false
+			meter.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			meter.z_index = 181
+			var background := StyleBoxFlat.new()
+			background.bg_color = Color(0.1, 0.15, 0.08, 0.8)
+			var fill := StyleBoxFlat.new()
+			fill.bg_color = Color(0.45, 0.9, 0.25)
+			meter.add_theme_stylebox_override("background", background)
+			meter.add_theme_stylebox_override("fill", fill)
+			meter.add_theme_font_size_override("font_size", 1)
+			meter.size = Vector2(44, 4)
+			meter.position = cell_center(cell) + Vector2(-22, 25 + (14 if cell.y == 0 else 0))
+			add_child(meter)
+			plant["production_meter"] = meter
 		plant.attack = 0.0
 		control.select(plant, plants)
 	_update_hud()
@@ -146,7 +172,7 @@ func begin_plant_attack(plant: Dictionary) -> bool:
 func configure_plant_pea(pea: Dictionary, plant: Dictionary) -> void:
 	var rank: int = plant.get("rank", 1)
 	pea["damage"] = Rules.PEA_DAMAGE[rank - 1]
-	pea.art.scale = Vector2.ONE * (1.0 + (rank - 1) * 0.1)
+	pea.art.scale = Vector2.ONE * (1.0 + (rank - 1) * 0.15)
 	pea.art.modulate = [Color.WHITE, Color(0.9, 1, 0.7), Color(0.7, 1, 1)][rank - 1]
 
 func request_controlled_action(mouse := false) -> bool:
@@ -166,18 +192,13 @@ func _update_plants(delta: float) -> void:
 	super._update_plants(delta)
 	for plant in plants:
 		if not control.can_control(plant): continue
-		plant.sun_ready = maxf(0, plant.sun_ready - delta)
-		if control.enabled and plant.kind == "sunflower" and plant.auto_until > 0:
-			plant.auto_efficiency = 1.0 if elapsed <= plant.full_until + 0.000001 else Rules.NEIGHBOR_EFFICIENCY
-			var manual_ready: bool = control.fire_held and control.selected_plant == plant and plant.charge + delta >= Rules.charge_time(plant)
-			if not manual_ready and elapsed <= plant.auto_until + 0.000001 and elapsed >= plant.auto_next and plant.sun_ready <= 0:
-				_produce_manual_sun(plant, plant.auto_efficiency)
+		if control.enabled and plant.kind == "sunflower": _update_sun_work(plant, delta)
 	if control.fire_held and not control.selected_plant.is_empty():
 		var plant: Dictionary = control.selected_plant
 		var ready: bool = plant.windup < 0 and plant.attack <= 0 if plant.kind == "peashooter" else true
 		if ready:
 			plant.charge = minf(plant.charge + delta, Rules.charge_time(plant))
-			if plant.charge + 0.000001 >= Rules.charge_time(plant) and (plant.kind == "peashooter" or plant.sun_ready <= 0):
+			if plant.charge + 0.000001 >= Rules.charge_time(plant):
 				plant.charge = 0.0
 				plant.pulse = 0.18
 				if plant.kind == "peashooter": _complete_pea_charge(plant)
@@ -194,9 +215,10 @@ func _complete_pea_charge(plant: Dictionary) -> void:
 	if not begin_plant_attack(plant): return
 	var row: int = plant.cell.y
 	var members := pea_members(row)
-	row_rounds[row] += 1
-	if row_rounds[row] >= Rules.chain_rounds(members.size()):
-		row_rounds[row] = 0
+	if members.size() <= 1: return
+	row_energy[row] += Rules.ROW_CONTRIBUTIONS[int(plant.rank) - 1]
+	if row_energy[row] >= Rules.ROW_THRESHOLD:
+		row_energy[row] -= Rules.ROW_THRESHOLD
 		for neighbor in members:
 			if neighbor != plant and begin_plant_attack(neighbor): neighbor.pulse = 0.18
 
@@ -208,35 +230,56 @@ func sunflower_neighbors(plant: Dictionary) -> Array[Dictionary]:
 			neighbors.append(other)
 	return neighbors
 
-func _produce_manual_sun(plant: Dictionary, efficiency: float) -> bool:
-	if plant.sun_ready > 0: return false
-	var amount: float = Rules.SUN_VALUE * efficiency + plant.sun_fraction
+func _produce_work_sun(plant: Dictionary, efficiency: float) -> void:
+	var amount: float = Rules.SUN_VALUES[int(plant.rank) - 1] * efficiency + plant.sun_fraction
 	var value := floori(amount + 0.000001)
 	plant.sun_fraction = amount - value
 	var sun := spawn_sun(cell_center(plant.cell) + Vector2(5, -35))
 	sun["value"] = value
 	sun["source_cell"] = plant.cell
-	plant.sun_ready = Rules.SUN_INTERVAL
-	plant.auto_next = elapsed + Rules.SUN_INTERVAL
 	plant.pulse = 0.18
-	return true
+
+func _sync_sun_state(plant: Dictionary) -> void:
+	if plant.full_until > elapsed + 0.000001:
+		plant.sun_state = Rules.SUN_WORK
+		plant.auto_efficiency = 1.0
+	elif plant.linked_until > elapsed + 0.000001:
+		plant.sun_state = Rules.SUN_WEAK_WORK
+		plant.auto_efficiency = Rules.NEIGHBOR_EFFICIENCY
+	else:
+		plant.sun_state = Rules.SUN_STOP
+		plant.auto_efficiency = 0.0
+
+func _update_sun_work(plant: Dictionary, delta: float) -> void:
+	# Only working time advances production. The inactive tail of a frame and
+	# time spent in Stop never create a production backlog.
+	var start: float = elapsed - delta
+	var working: float = clampf(plant.auto_until - start, 0, delta)
+	var remaining: float = plant.sun_ready - working
+	while working > 0 and remaining <= 0.000001:
+		var produced_at: float = start + plant.sun_ready
+		var efficiency: float = 1.0 if produced_at <= plant.full_until + 0.000001 else Rules.NEIGHBOR_EFFICIENCY
+		_produce_work_sun(plant, efficiency)
+		remaining += Rules.SUN_INTERVAL
+		# Account for subsequent production boundaries in a larger simulation step.
+		start = produced_at
+		plant.sun_ready = Rules.SUN_INTERVAL
+	plant.sun_ready = maxf(0, remaining)
+	_sync_sun_state(plant)
 
 func _start_sun_window(plant: Dictionary, duration: float, efficiency: float) -> void:
 	if duration <= 0: return
-	var already_active: bool = plant.auto_until > elapsed
 	if efficiency >= 1.0: plant.full_until = maxf(plant.full_until, elapsed + duration)
 	else: plant.linked_until = maxf(plant.linked_until, elapsed + duration)
 	plant.auto_until = maxf(plant.full_until, plant.linked_until)
-	plant.auto_efficiency = 1.0 if plant.full_until > elapsed else Rules.NEIGHBOR_EFFICIENCY
-	if not already_active: plant.auto_next = elapsed + maxf(plant.sun_ready, 0.001)
+	_sync_sun_state(plant)
 
 func _activate_sun_network(plant: Dictionary) -> void:
-	if not _produce_manual_sun(plant, 1.0): return
 	var duration: float = Rules.SUN_WINDOWS[int(plant.rank) - 1]
 	_start_sun_window(plant, duration, 1.0)
 	for neighbor in sunflower_neighbors(plant):
-		_produce_manual_sun(neighbor, Rules.NEIGHBOR_EFFICIENCY)
 		_start_sun_window(neighbor, duration, Rules.NEIGHBOR_EFFICIENCY)
+		neighbor.pulse = 0.18
 
 func _update_feedback(delta: float) -> void:
 	for plant in plants:
@@ -246,33 +289,45 @@ func _update_feedback(delta: float) -> void:
 		var scale_value: float = 1 + Rules.FEEDBACK_SCALE * maxf(fraction, plant.pulse / 0.18)
 		plant.art.scale = Vector2.ONE * scale_value
 		plant.art.position = plant.base_position + Rules.ROOT_PIVOT * (1 - scale_value)
-		plant.rank_badge.text = "★".repeat(plant.rank)
+		if plant.kind == "sunflower":
+			var state: String = plant.sun_state
+			var tint := Color(0.5, 0.92, 0.35) if state == Rules.SUN_WORK else (Color(1, 0.78, 0.3) if state == Rules.SUN_WEAK_WORK else Color(0.75, 0.78, 0.72))
+			plant.rank_badge.text = {Rules.SUN_STOP: "STOP", Rules.SUN_WORK: "WORK", Rules.SUN_WEAK_WORK: "弱 WORK"}[state]
+			plant.rank_badge.modulate = tint
+			plant.production_meter.modulate = tint
+			plant.production_meter.value = (1 - plant.sun_ready / Rules.SUN_INTERVAL) * 100
+			var bottom_charge: bool = plant.cell.y == 0 and control.fire_held and control.selected_plant == plant
+			plant.rank_badge.visible = control.enabled and not bottom_charge
+			plant.production_meter.visible = control.enabled and not bottom_charge
 	if not is_instance_valid(charge_bar): return
 	charge_bar.visible = control.fire_held and not control.selected_plant.is_empty() and not paused and result.is_empty()
 	if charge_bar.visible:
 		var plant: Dictionary = control.selected_plant
 		charge_bar.position = cell_center(plant.cell) + Vector2(-30, -67)
 		charge_bar.position.y = maxf(86, charge_bar.position.y)
+		if plant.cell.y == 0: charge_bar.position.y = GRID_ORIGIN.y + CELL_SIZE.y - 12
 		charge_bar.value = clampf(plant.charge / Rules.charge_time(plant) * 100, 0, 100)
 
 func _remove_entity(collection: Array[Dictionary], entity: Dictionary) -> void:
 	if entity.has("rank_badge"): entity.rank_badge.queue_free()
+	if entity.has("production_meter"): entity.production_meter.queue_free()
 	super._remove_entity(collection, entity)
 	control.validate(plants)
 	for row in ROWS:
 		var members := pea_members(row)
-		row_rounds[row] = 0 if members.is_empty() else mini(row_rounds[row], Rules.chain_rounds(members.size()) - 1)
+		if members.size() <= 1: row_energy[row] = 0
 
 func toggle_control_mode() -> void:
 	if paused or not result.is_empty(): return
 	control.enabled = not control.enabled
 	control.clear()
-	row_rounds.fill(0)
+	row_energy.fill(0)
 	for plant in plants:
 		if plant.has("auto_until"):
 			plant.auto_until = 0.0
 			plant.full_until = 0.0
 			plant.linked_until = 0.0
+			_sync_sun_state(plant)
 	_update_feedback(0)
 	_update_hud()
 
@@ -304,10 +359,10 @@ func _update_hud() -> void:
 		if plant.kind == "peashooter":
 			if plant.windup >= 0: status = "正在发射"
 			var count := pea_members(plant.cell.y).size()
-			detail = "同行联动 %d/%d" % [row_rounds[plant.cell.y], Rules.chain_rounds(count)] if count > 1 else "种植同行射手可联动"
+			detail = "联动 %d%% · 本阶%d轮" % [roundi(row_energy[plant.cell.y] * 100.0 / Rules.ROW_THRESHOLD), Rules.chain_rounds(plant.rank)] if count > 1 else "种植同行射手可联动"
 		else:
-			if plant.sun_ready > 0: status = "产出间隔 %.1f 秒" % plant.sun_ready
-			detail = "自动补给 %.1f 秒" % maxf(0, plant.auto_until - elapsed) if plant.auto_until > elapsed else "周围 %d 株 · 75%%产量" % sunflower_neighbors(plant).size()
+			if not control.fire_held: status = "%s · 下一份 %.1f秒" % [{Rules.SUN_STOP: "STOP", Rules.SUN_WORK: "WORK", Rules.SUN_WEAK_WORK: "弱WORK"}[plant.sun_state], plant.sun_ready]
+			detail = "工作剩余 %.1f秒 · 产量%d" % [maxf(0, plant.auto_until - elapsed), Rules.SUN_VALUES[int(plant.rank) - 1]] if plant.sun_state != Rules.SUN_STOP else "长按激活 · 周围75%产量"
 		control_label.text = "%s · %s\n%s\n%s" % [DEFINITIONS[plant.kind].name, Rules.RANK_NAMES[int(plant.rank) - 1], status, detail]
 	if result.is_empty():
 		hint_label.text = "已暂停 · 空格继续" if paused else ("左键长按 · 同种叠加升阶 · Tab/F辅助 · 空格暂停" if control.enabled else "自动对照 · 1/2/3选卡 · 4铲子 · 空格暂停")

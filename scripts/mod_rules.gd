@@ -5,9 +5,15 @@ const RANK_NAMES := ["新兵", "士官", "精英"]
 const PEA_CHARGE := [0.95, 0.80, 0.65]
 const PEA_DAMAGE := [20, 24, 28]
 const SUN_CHARGE := 2.4
-const SUN_WINDOWS := [0.0, 6.0, 12.0]
-const SUN_INTERVAL := 4.0
-const SUN_VALUE := 25
+const SUN_WINDOWS := [12.0, 20.0, 30.0]
+const SUN_INTERVAL := 8.0
+const SUN_VALUES := [25, 30, 35]
+const SUN_STOP := "stop"
+const SUN_WORK := "work"
+const SUN_WEAK_WORK := "weak_work"
+# Six integer units represent one full row volley; no floating-point drift.
+const ROW_THRESHOLD := 6
+const ROW_CONTRIBUTIONS := [2, 3, 6]
 const NEIGHBOR_EFFICIENCY := 0.75
 const FEEDBACK_SCALE := 0.12
 const ROOT_PIVOT := Vector2(40, 64)
@@ -15,8 +21,5 @@ const ROOT_PIVOT := Vector2(40, 64)
 static func charge_time(plant: Dictionary) -> float:
 	return PEA_CHARGE[int(plant.rank) - 1] if plant.kind == "peashooter" else SUN_CHARGE
 
-static func chain_rounds(count: int) -> int:
-	if count <= 1: return 1
-	if count <= 3: return 2
-	if count <= 6: return 3
-	return 4
+static func chain_rounds(rank: int) -> int:
+	return [3, 2, 1][rank - 1]
