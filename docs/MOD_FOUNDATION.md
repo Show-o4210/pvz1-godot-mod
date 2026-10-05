@@ -4,7 +4,7 @@
 
 ## 当前阶段：激活生产与军衔联动
 
-当前为 mod-v0.4.0-local。向日葵长按激活 Work，周围进入 Weak Work，工作中每 8 秒自动生产，Stop 冻结进度；再次激活不重置生产间隔，三阶工作时长为 24/40/60 秒。豌豆联动按主动主株军衔为 3/2/1 轮，并有随头部运动的三档军帽。当前规则见 [MOD_WORK_STATES.md](MOD_WORK_STATES.md)；最新工具区扩高、帽子遮挡、音效和波次表现见 [MOD_FEEDBACK_V04.md](MOD_FEEDBACK_V04.md)。
+当前为 mod-v0.5.0，本轮经用户授权同步 GitHub。向日葵长按激活 Work，周围进入 Weak Work，工作中每 8 秒自动生产，Stop 冻结进度；再次激活不重置生产间隔，三阶工作时长为 24/40/60 秒。豌豆联动按主动主株军衔为 3/2/1 轮，并有随头部运动的三档军帽。当前规则见 [MOD_WORK_STATES.md](MOD_WORK_STATES.md)；最新草坪道路、紧凑工具区与阳光循环见 [LAYOUT_AND_SUN.md](LAYOUT_AND_SUN.md)，历史音效/波次修正见 [MOD_FEEDBACK_V04.md](MOD_FEEDBACK_V04.md)。
 
 以下保留 mod-v0.2.0 的原始方案与实现记录；其中直接长按产阳光、4 秒间隔、6/12 秒窗口、按同行数量计算门槛已被当前方案替代。
 

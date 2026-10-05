@@ -19,7 +19,7 @@ func capture() -> Image:
 
 func run_tests() -> void:
 	viewport = SubViewport.new()
-	viewport.size = Vector2i(800, 690)
+	viewport.size = Vector2i(900, 640)
 	viewport.transparent_bg = true
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	root.add_child(viewport)

@@ -41,7 +41,7 @@ func snapshot(name: String) -> Image:
 func run_tests() -> void:
 	DirAccess.make_dir_recursive_absolute("res://build")
 	viewport = SubViewport.new()
-	viewport.size = Vector2i(800, 690)
+	viewport.size = Vector2i(900, 640)
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	root.add_child(viewport)
 	game = load("res://scenes/mod_game.tscn").instantiate()
@@ -70,7 +70,7 @@ func run_tests() -> void:
 	var bar_pos: Vector2 = game.charge_bar.global_position
 	var pixel := img.get_pixel(roundi(bar_pos.x + 5), roundi(bar_pos.y + 4))
 	check(absf(pixel.r - 0.45) < 0.03 and pixel.g > 0.9 and pixel.b < 0.3, "GPU renders the progress fill above the lawn")
-	check(bar_pos.y >= 86, "first-row progress stays below the seed bank")
+	check(bar_pos.y >= 100, "first-row progress stays below the inset seed bank")
 	check(game.charge_bar.size.y <= 10, "actual themed progress bar stays thin without covering the face")
 	mouse(Vector2(600, 25), false, true)
 	check(not game.control.fire_held and pea.charge == 0, "mouse release over GUI still cancels charging")
@@ -116,8 +116,8 @@ func run_tests() -> void:
 		for corner in [rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]:
 			top_y = minf(top_y, hat.to_global(corner).y)
 	hat.set_rank(top.rank)
-	check(top_y >= 86, "charged first-row sunflower cap stays below the seed bank (top %.2f)" % top_y)
-	check(top.rank_badge.visible and top.production_meter.visible and game.charge_bar.visible and game.charge_bar.global_position.y > 90, "expanded layout keeps first-row production and charge feedback visible together")
+	check(top_y >= 100, "charged first-row sunflower cap stays below the inset seed bank (top %.2f)" % top_y)
+	check(top.rank_badge.visible and top.production_meter.visible and game.charge_bar.visible and game.charge_bar.global_position.y >= 100, "compact layout keeps first-row production and charge feedback visible together")
 	mouse(game.cell_center(top.cell), false)
 	check(top.rank_badge.visible and top.production_meter.visible and not game.charge_bar.visible, "first-row sunflower restores its stopped production indicators on release")
 	await snapshot("mod-top-row")

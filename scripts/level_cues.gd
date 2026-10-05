@@ -21,7 +21,7 @@ func setup(owner_game: Node2D) -> void:
 	layer.layer = 3
 	add_child(layer)
 	banner = Label.new()
-	banner.position = Vector2(70, 295)
+	banner.position = Vector2(game.BOARD_WIDTH / 2 - 330, 265)
 	banner.size = Vector2(660, 95)
 	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	banner.vertical_alignment = VERTICAL_ALIGNMENT_CENTER

@@ -4,7 +4,7 @@ const PlantControl := preload("res://scripts/plant_control.gd")
 const Rules := preload("res://scripts/mod_rules.gd")
 const Hat := preload("res://scripts/rank_hat.gd")
 const LevelCues := preload("res://scripts/level_cues.gd")
-const TOOLBAR_HEIGHT := 90.0
+const TOOLBAR_HEIGHT := 40.0
 var level_cues: Node
 var control = PlantControl.new()
 var control_label: Label
@@ -35,24 +35,22 @@ func _build_hud() -> void:
 	add_child(toolbar_layer)
 	var shelf := ColorRect.new()
 	shelf.color = Color(0.16, 0.19, 0.09)
-	shelf.size = Vector2(800, TOOLBAR_HEIGHT)
+	shelf.size = Vector2(BOARD_WIDTH, TOOLBAR_HEIGHT)
 	shelf.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	toolbar_layer.add_child(shelf)
 	var edge := ColorRect.new()
 	edge.position.y = TOOLBAR_HEIGHT - 2
-	edge.size = Vector2(800, 2)
+	edge.size = Vector2(BOARD_WIDTH, 2)
 	edge.color = Color(0.53, 0.39, 0.17)
 	edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	toolbar_layer.add_child(edge)
 	super._build_hud()
-	for item in sun_label.get_parent().get_children():
+	for item in hud_layer.get_children():
 		if (item is Node2D or item is Control) and item.position.y >= 570: item.position.y += TOOLBAR_HEIGHT
 	menu_panel.position.y += TOOLBAR_HEIGHT
 	result_panel.position.y += TOOLBAR_HEIGHT
-	var layer := CanvasLayer.new()
-	add_child(layer)
-	control_label = _label(layer, Vector2(270, 7), Vector2(172, 68), 12)
-	mode_button = _button(layer, "切换自动", Vector2(538, 3), Vector2(130, 46))
+	control_label = _label(seed_bar, Vector2(270, 7), Vector2(172, 68), 12)
+	mode_button = _button(hud_layer, "切换自动", Vector2(540, 6), Vector2(130, 46))
 	mode_button.add_theme_font_size_override("font_size", 14)
 	mode_button.focus_mode = Control.FOCUS_NONE
 	mode_button.pressed.connect(toggle_control_mode)
