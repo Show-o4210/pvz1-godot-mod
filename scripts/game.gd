@@ -504,13 +504,25 @@ func _update_plants(delta: float) -> void:
 		if plant.kind == "sunflower" and plant.produce <= 0:
 			spawn_sun(center + Vector2(5, -35))
 			plant.produce += 24.0
-		elif plant.kind == "peashooter" and plant.attack <= 0:
+		elif plant.kind == "peashooter" and plant.attack <= 0 and should_auto_attack(plant):
 			for zombie in zombies:
 				if zombie.row == plant.cell.y and zombie.x > center.x - 15 and zombie.x < 855:
-					plant.art.get_meta("view").shoot()
-					plant.windup = 0.35
-					plant.attack = 1.425
+					begin_plant_attack(plant)
 					break
+
+
+func should_auto_attack(_plant: Dictionary) -> bool:
+	return true
+
+
+func begin_plant_attack(plant: Dictionary) -> bool:
+	if paused or not result.is_empty() or not plants.has(plant): return false
+	if plant.hp <= 0: return false
+	if plant.kind != "peashooter" or plant.attack > 0 or plant.windup >= 0: return false
+	plant.art.get_meta("view").shoot()
+	plant.windup = 0.35
+	plant.attack = 1.425
+	return true
 
 
 func _update_projectiles(delta: float) -> void:

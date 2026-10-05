@@ -1,8 +1,10 @@
-# PVZ1 · Godot v1 UI 与动画还原
+# PVZ1 · Godot Mod：手动操控原型
 
-**素材来源版本：PVZ 汉化2版（PVZ1 1.0.0.1051 CN V2）**。本项目的阶段版本为 v1。
+**素材来源版本：PVZ 汉化2版（PVZ1 1.0.0.1051 CN V2）**。本仓库从 `v1` 还原基线分离，当前阶段为 **mod-v0.1.0**。
 
-**GitHub 发布不附带原版素材。** 克隆后请先按 [素材导入说明](docs/ASSETS.md) 生成 `assets/`，再打开 Godot。还原基线发布说明见 [RELEASE_V1.md](docs/RELEASE_V1.md)；大改将使用独立的 [Mod 仓库](https://github.com/Show-o4210/pvz1-godot-mod)。
+**GitHub 发布不附带原版素材。** 克隆后请先按 [素材导入说明](docs/ASSETS.md) 生成 `assets/`，再打开 Godot。固定还原版在 [pvz1-godot-restoration](https://github.com/Show-o4210/pvz1-godot-restoration)；本仓库开发根基、操作方式与扩展约束见 [MOD_FOUNDATION.md](docs/MOD_FOUNDATION.md)。
+
+默认手动模式：种下豌豆射手即接管，或点击射手接管；**F 开火/按住连续开火，Tab 切换射手**，右键取消。射手不再自行开火，向日葵和坚果保留原有自动/被动行为。顶部按钮可切换回自动模式。当前只做手动射击基础，不强制后续所有玩法都手动化。
 
 v0 用本地原版资源还原最小白天草坪战斗。当前 v1 保留该玩法，修正卡片尺寸、草坪坐标和角色落点，加入射击反馈、植物受伤、坚果裂纹、路障破损、僵尸断臂/掉头/倒地淡出、推车待机/启动以及原版风格菜单和进度条。阶段范围、来源和剩余差异见 [docs/VERSIONS.md](docs/VERSIONS.md)。
 
@@ -12,7 +14,7 @@ v1 已修复颜色变暗、豌豆头身联动、僵尸下巴、步态移动/停�
 
 ## 启动
 
-双击 `启动游戏.cmd`，或在 Godot 4.7.2 中导入 `project.godot` 后按 F6/F5 运行。
+双击 `启动游戏.cmd`，或在 Godot 4.7.2 中导入 `project.godot` 后按 F5 运行 Mod。`scenes/game.tscn` 保留自动化基线，`scenes/mod_game.tscn` 为默认 Mod 主场景。
 
 左键选择种子，再点击草坪种植；点击阳光收集。右键取消；1/2/3 选择豌豆射手/向日葵/坚果，4 选择铲子，空格/ESC 暂停，R 重开。右上角“菜单”可以暂停并重新开始。
 
@@ -47,6 +49,8 @@ python tools/prepare_assets.py ..\Plants_Vs_Zombies_V1.0.0.1051_CN_V2
 ..\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe --headless --path . --script tests/presentation_test.gd
 ..\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe --headless --path . --script tests/animation_detail_test.gd
 ..\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe --headless --path . --script tests/discrete_state_test.gd
+..\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe --headless --path . --script tests/manual_control_test.gd
+..\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe --headless --path . --script tests/manual_playthrough.gd
 ..\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe --path . --script tests/color_render_test.gd
 ..\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe --headless --path . --script tests/level_playthrough.gd
 python tools/pvz2godot/verify.py --all .source_assets/compiled/reanim assets/actors
@@ -55,3 +59,5 @@ python tools/pvz2godot/verify.py --all .source_assets/compiled/reanim assets/act
 玩法检查覆盖资源扣除、重复种植、冷却、真实子弹飞行与首个目标命中、分行判定、护甲溢出、阳光点击优先级、暂停、铲除、啃食、推车和胜负。
 
 本机 Godot 4.7.2 的 v1 验证结果（2026-10-05）：22 项玩法、24 项动画/UI、18 项动画联动/位移、36 项离散状态/动作切换、5 项 GPU 颜色检查，共 105 项通过。GPU 零效果颜色对照的 RGBA 误差为零；自动操作按正常经济和冷却规则完成三波关卡，约 188.2 秒击败 15/15 僵尸。v0 的六个动画已通过转换工具语义校验；v1 使用同一转换结果并保留步态元数据，在运行时绑定部件和管理播放，尚未逐像素对照整个原版画面。实际 GPU 截图和连续视频保存在 `build/`，已人工检查；`build/v1-detail.mp4` 已重新生成，包含手型修复后的 8 秒连续画面。
+
+Mod 额外通过 36 项手动操控检查，合计 141 项检查通过。手动命令路径保持正常经济、攻击间隔与前摇，三波击败 15/15 僵尸，约 187.9 秒，执行 193 次攻击命令。此自动操作验证程序流程，不代表真人难度已经平衡。实际原型截图可在本地 `build/mod-manual.png` 查看，公开仓库不附截图或素材。
