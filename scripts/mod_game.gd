@@ -3,6 +3,9 @@ extends "res://scripts/game.gd"
 const PlantControl := preload("res://scripts/plant_control.gd")
 const Rules := preload("res://scripts/mod_rules.gd")
 const Hat := preload("res://scripts/rank_hat.gd")
+const LevelCues := preload("res://scripts/level_cues.gd")
+const TOOLBAR_HEIGHT := 90.0
+var level_cues: Node
 var control = PlantControl.new()
 var control_label: Label
 var mode_button: Button
@@ -10,8 +13,42 @@ var control_marker: Line2D
 var charge_bar: ProgressBar
 var row_energy := [0, 0, 0, 0, 0]
 
+func _ready() -> void:
+	position.y = TOOLBAR_HEIGHT
+	super._ready()
+	level_cues = LevelCues.new()
+	add_child(level_cues)
+	level_cues.setup(self)
+
+func simulate(delta: float) -> void:
+	if paused or not result.is_empty(): return
+	if automatic_spawns and level_cues.update_intro(delta):
+		_update_presentation(delta)
+		return
+	if automatic_spawns: level_cues.update_waves(elapsed, elapsed + delta)
+	super.simulate(delta)
+	level_cues.update_banner(delta)
+
 func _build_hud() -> void:
+	var toolbar_layer := CanvasLayer.new()
+	toolbar_layer.layer = 0
+	add_child(toolbar_layer)
+	var shelf := ColorRect.new()
+	shelf.color = Color(0.16, 0.19, 0.09)
+	shelf.size = Vector2(800, TOOLBAR_HEIGHT)
+	shelf.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	toolbar_layer.add_child(shelf)
+	var edge := ColorRect.new()
+	edge.position.y = TOOLBAR_HEIGHT - 2
+	edge.size = Vector2(800, 2)
+	edge.color = Color(0.53, 0.39, 0.17)
+	edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	toolbar_layer.add_child(edge)
 	super._build_hud()
+	for item in sun_label.get_parent().get_children():
+		if (item is Node2D or item is Control) and item.position.y >= 570: item.position.y += TOOLBAR_HEIGHT
+	menu_panel.position.y += TOOLBAR_HEIGHT
+	result_panel.position.y += TOOLBAR_HEIGHT
 	var layer := CanvasLayer.new()
 	add_child(layer)
 	control_label = _label(layer, Vector2(270, 7), Vector2(172, 68), 12)
@@ -52,7 +89,7 @@ func _input(event: InputEvent) -> void:
 		if control.selected_plant.is_empty() or screen_to_cell(get_global_transform().affine_inverse() * event.position) != control.selected_plant.cell:
 			release_controlled_action()
 	if event is InputEventKey and event.keycode == KEY_TAB and event.pressed and not event.echo and not paused and result.is_empty():
-		select_seed("")
+		cancel_selection()
 		control.cycle(plants)
 		_update_hud()
 		get_viewport().set_input_as_handled()
@@ -114,8 +151,6 @@ func try_plant(kind: String, cell: Vector2i) -> bool:
 		return true
 	if not super.try_plant(kind, cell): return false
 	var plant: Dictionary = plants[-1]
-	# Reserve room for the cap below the seed bank in the top row.
-	if cell.y == 0 and control.can_control(plant): plant.art.position.y += 14
 	plant.merge({"rank": 1, "charge": 0.0, "sun_ready": Rules.SUN_INTERVAL, "auto_until": 0.0,
 		"full_until": 0.0, "linked_until": 0.0,
 		"sun_state": Rules.SUN_STOP, "auto_efficiency": 0.0, "sun_fraction": 0.0, "pulse": 0.0,
@@ -128,14 +163,14 @@ func try_plant(kind: String, cell: Vector2i) -> bool:
 		badge.add_theme_color_override("font_color", Color(1, 0.9, 0.3))
 		badge.add_theme_color_override("font_outline_color", Color(0.15, 0.1, 0.02))
 		badge.add_theme_constant_override("outline_size", 3)
-		badge.position = cell_center(cell) + Vector2(-28, 30 + (14 if cell.y == 0 else 0))
+		badge.position = cell_center(cell) + Vector2(-28, 30)
 		badge.size = Vector2(56, 16)
 		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		badge.visible = kind == "sunflower"
 		add_child(badge)
 		plant["rank_badge"] = badge
 		var hat := Hat.new()
-		hat.setup(plant.art, kind, cell.y == 0)
+		hat.setup(plant.art, kind)
 		plant["rank_hat"] = hat
 		if kind == "sunflower":
 			var meter := ProgressBar.new()
@@ -150,7 +185,7 @@ func try_plant(kind: String, cell: Vector2i) -> bool:
 			meter.add_theme_stylebox_override("fill", fill)
 			meter.add_theme_font_size_override("font_size", 1)
 			meter.size = Vector2(44, 4)
-			meter.position = cell_center(cell) + Vector2(-22, 25 + (14 if cell.y == 0 else 0))
+			meter.position = cell_center(cell) + Vector2(-22, 25)
 			add_child(meter)
 			plant["production_meter"] = meter
 		plant.attack = 0.0
@@ -296,16 +331,14 @@ func _update_feedback(delta: float) -> void:
 			plant.rank_badge.modulate = tint
 			plant.production_meter.modulate = tint
 			plant.production_meter.value = (1 - plant.sun_ready / Rules.SUN_INTERVAL) * 100
-			var bottom_charge: bool = plant.cell.y == 0 and control.fire_held and control.selected_plant == plant
-			plant.rank_badge.visible = control.enabled and not bottom_charge
-			plant.production_meter.visible = control.enabled and not bottom_charge
+			plant.rank_badge.visible = control.enabled
+			plant.production_meter.visible = control.enabled
 	if not is_instance_valid(charge_bar): return
 	charge_bar.visible = control.fire_held and not control.selected_plant.is_empty() and not paused and result.is_empty()
 	if charge_bar.visible:
 		var plant: Dictionary = control.selected_plant
 		charge_bar.position = cell_center(plant.cell) + Vector2(-30, -67)
-		charge_bar.position.y = maxf(86, charge_bar.position.y)
-		if plant.cell.y == 0: charge_bar.position.y = GRID_ORIGIN.y + CELL_SIZE.y - 12
+		charge_bar.position.y = maxf(4, charge_bar.position.y)
 		charge_bar.value = clampf(plant.charge / Rules.charge_time(plant) * 100, 0, 100)
 
 func _remove_entity(collection: Array[Dictionary], entity: Dictionary) -> void:
@@ -334,12 +367,19 @@ func toggle_control_mode() -> void:
 func toggle_pause() -> void:
 	release_controlled_action()
 	super.toggle_pause()
+	if is_instance_valid(level_cues):
+		level_cues.voice.stream_paused = paused
+		level_cues.alarm.stream_paused = paused
 	_update_hud()
 
 func _finish(title: String, message: String) -> void:
 	control.clear()
 	_update_feedback(0)
 	super._finish(title, message)
+	if is_instance_valid(level_cues):
+		level_cues.hide_banner()
+		level_cues.voice.stop()
+		level_cues.alarm.stop()
 	_update_hud()
 
 func _update_hud() -> void:

@@ -1,6 +1,6 @@
 # PVZ1 · Godot Mod：激活生产与军衔联动
 
-**素材来源版本：PVZ 汉化2版（PVZ1 1.0.0.1051 CN V2）**。本仓库从 `v1` 还原基线分离，当前本地阶段为 **mod-v0.3.0-local**。GitHub 最近仅同步开发方案与阳光收集 UI；后续玩法实现保留在本地，等用户明确要求后再上传。
+**素材来源版本：PVZ 汉化2版（PVZ1 1.0.0.1051 CN V2）**。本仓库从 `v1` 还原基线分离，当前本地阶段为 **mod-v0.4.0-local**。GitHub 最近仅同步开发方案与阳光收集 UI；后续玩法实现保留在本地，等用户明确要求后再上传。
 
 **GitHub 发布不附带原版素材。** 克隆后请先按 [素材导入说明](docs/ASSETS.md) 生成 `assets/`，再打开 Godot。固定还原版在 [pvz1-godot-restoration](https://github.com/Show-o4210/pvz1-godot-restoration)；本仓库开发根基、操作方式与扩展约束见 [MOD_FOUNDATION.md](docs/MOD_FOUNDATION.md)。
 
@@ -8,10 +8,12 @@
 
 - 同一格再次种植同种植物升军衔，最高三阶，使用正常费用和种子冷却；不免费回血。三种军帽随植物头部运动，顶部状态和卡片提示显示收益与满阶。
 - 豌豆升级缩短充能、适度提高伤害并增大子弹；由主动主株军衔决定同行联动，一/二/三阶分别需 3/2/1 次完整充能。切换保留共享能量，联动时主株只射一次。
-- 向日葵长按 2.4 秒激活 Work，周围八格邻株进入 75% 产量的 Weak Work，连锁不递归。一/二/三阶工作 12/20/30 秒，自动生产间隔暂设 8 秒，全额产量 25/30/35。重新激活不重置生产进度，Stop 冻结进度，激活本身不立即发钱。脚边显示工作状态与生产条。
+- 向日葵长按 2.4 秒激活 Work，周围八格邻株进入 75% 产量的 Weak Work，连锁不递归。一/二/三阶工作 24/40/60 秒，自动生产间隔暂设 8 秒，全额产量 25/30/35。重新激活不重置生产进度，Stop 冻结进度，激活本身不立即发钱。脚边显示工作状态与生产条。
 - 顶部按钮可切回自动对照模式。坚果仍为被动防线；原三波关卡和敌人参数保留，真人难度待试玩微调。
 
 当前设计、测试参数、军帽素材生成提示和复用方法见 [MOD_WORK_STATES.md](docs/MOD_WORK_STATES.md)。本地完整阶段归档包含原版选用素材及新增 `assets/mod/` 军帽；重新导入原版素材的工具不生成这些新增军帽。
+
+当前画面为 800×690：顶部独立 90 像素工具区，原 800×600 草坪按原比例显示，第一排无需再挪植物或隐藏反馈条。军帽会被同排啃食的僵尸遮挡；拾铲、铲除、取消和吞咽使用对应原版音效；开场、第一波、大波预警和最后一波有文字与声音。原因、原版映射和坐标处理见 [MOD_FEEDBACK_V04.md](docs/MOD_FEEDBACK_V04.md)。
 
 v0 用本地原版资源还原最小白天草坪战斗。当前 v1 保留该玩法，修正卡片尺寸、草坪坐标和角色落点，加入射击反馈、植物受伤、坚果裂纹、路障破损、僵尸断臂/掉头/倒地淡出、推车待机/启动以及原版风格菜单和进度条。阶段范围、来源和剩余差异见 [docs/VERSIONS.md](docs/VERSIONS.md)。
 
@@ -62,6 +64,8 @@ python tools/prepare_assets.py ..\Plants_Vs_Zombies_V1.0.0.1051_CN_V2
 ..\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe --headless --path . --script tests/plant_network_test.gd
 ..\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe --headless --path . --script tests/rank_presentation_test.gd
 ..\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe --path . --script tests/mod_mouse_render_test.gd
+..\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe --path . --script tests/hat_occlusion_test.gd
+..\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe --path . --script tests/feedback_wave_test.gd
 ..\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe --headless --path . --script tests/manual_playthrough.gd
 ..\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe --path . --script tests/color_render_test.gd
 ..\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe --headless --path . --script tests/level_playthrough.gd
@@ -72,7 +76,7 @@ python tools/pvz2godot/verify.py --all .source_assets/compiled/reanim assets/act
 
 本机 Godot 4.7.2 的 v1 当前验证结果（2026-10-06）：22 项玩法、24 项动画/UI、18 项动画联动/位移、36 项离散状态/动作切换、33 项眨眼绑定、12 项阳光收集、5 项 GPU 颜色检查，共 150 项通过。GPU 零效果颜色对照的 RGBA 误差为零；自动操作按正常经济和冷却规则完成三波关卡，约 188.2 秒击败 15/15 僵尸。v0 的六个动画已通过转换工具语义校验；v1 使用同一转换结果并保留步态元数据，在运行时绑定部件和管理播放，尚未逐像素对照整个原版画面。实际 GPU 截图和连续视频保存在 `build/`，已人工检查；`build/v1-detail.mp4` 保留手型修复后的 8 秒画面，新近景 `build/sunflower-blink.mp4` 展示三个不同摇摆相位的眨眼绑定。既有 `v1` 和 `mod-v0.1.0` 标签及完整归档保留原基线，本次修复提交在 `main`。
 
-当前本地 Mod 额外通过 43 项长按/升级、50 项工作状态/连锁、30 项军帽/反馈、15 项实际鼠标/GPU 检查，加上 150 项基础回归，共 288 项通过。一次只充能一株、遵守正常经济和卡片冷却的通关程序击败 15/15 僵尸，约 220.4 秒，完成 136 次长按。此结果证明流程可用，不代表真人难度已平衡。当前截图与 24 秒全彩预览为本地 `build/mod-v0.3.png`、`build/mod-v0.3.mp4`；上版预览和归档保留。
+当前本地 Mod 通过 43 项长按/升级、50 项工作状态/连锁、30 项军帽/反馈、15 项实际鼠标/GPU、6 项军帽遮挡/GPU、36 项工具音效/波次检查，加上 150 项基础回归，共 330 项通过。一次只充能一株、遵守正常经济和卡片冷却的通关程序击败 15/15 僵尸，约 220.4 秒，完成 147 次长按。此结果证明流程可用，不代表真人难度已平衡。当前截图与 23 秒含音效预览为本地 `build/mod-v0.4.png`、`build/mod-v0.4.mp4`；上版预览和归档保留。音效专项使用实际音频驱动运行，避免无声 headless 驱动退出时未消费 Ogg 播放引用造成的警告。
 
 `tests/manual_control_test.gd` 和 `tests/manual_playthrough.gd` 是当前长按检查/通关入口的兼容别名，原 mod-v0.1.0 测试在历史标签中保留。初版数值集中于 [scripts/mod_rules.gd](scripts/mod_rules.gd)，方便试玩微调。
 

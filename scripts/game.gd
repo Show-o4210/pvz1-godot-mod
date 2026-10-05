@@ -315,9 +315,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_RIGHT:
-			select_seed("")
+			cancel_selection()
 		elif event.button_index == MOUSE_BUTTON_LEFT:
-			handle_click(get_global_mouse_position())
+			handle_click(to_local(get_global_mouse_position()))
 
 
 func handle_click(pos: Vector2) -> void:
@@ -332,15 +332,23 @@ func handle_click(pos: Vector2) -> void:
 	if cell.x < 0:
 		return
 	if selected == "shovel":
+		var removed := false
 		for plant in plants.duplicate():
 			if plant.cell == cell:
 				_remove_entity(plants, plant)
-				_play_sound("plant")
+				_play_sound("plant2")
+				removed = true
 				break
+		if not removed: _play_sound("tap2")
 		select_seed("")
 	elif not selected.is_empty():
 		try_plant(selected, cell)
 
+
+func cancel_selection() -> void:
+	if paused or not result.is_empty(): return
+	if not selected.is_empty(): _play_sound("tap2")
+	select_seed("")
 
 func select_seed(kind: String) -> void:
 	if paused or not result.is_empty():
@@ -348,8 +356,11 @@ func select_seed(kind: String) -> void:
 	if not kind.is_empty() and kind != "shovel":
 		if not DEFINITIONS.has(kind) or sun_count < DEFINITIONS[kind].cost or cooldowns[kind] > 0:
 			return
+	if not kind.is_empty() and selected == kind:
+		cancel_selection()
+		return
 	selected = kind
-	if not kind.is_empty(): _play_sound("seedlift")
+	if not kind.is_empty(): _play_sound("shovel" if kind == "shovel" else "seedlift")
 	if is_instance_valid(ghost):
 		ghost.queue_free()
 		ghost = null
@@ -467,7 +478,7 @@ func _physics_process(delta: float) -> void:
 	elif not paused:
 		_update_presentation(delta)
 	_update_hud()
-	var mouse := get_global_mouse_position()
+	var mouse := to_local(get_global_mouse_position())
 	hover_cell = screen_to_cell(mouse)
 	if is_instance_valid(ghost):
 		ghost.visible = hover_cell.x >= 0 and not paused and result.is_empty()
@@ -515,7 +526,7 @@ func _update_plants(delta: float) -> void:
 		if plant.kind == "peashooter" and plant.windup >= 0:
 			plant.windup -= delta
 			if plant.windup <= 0:
-				var muzzle: Vector2 = plant.art.get_meta("view").muzzle_position()
+				var muzzle: Vector2 = to_local(plant.art.get_meta("view").muzzle_position())
 				var pea := fire_pea(plant.cell.y, muzzle.x, muzzle.y)
 				configure_plant_pea(pea, plant)
 				_play_sound("throw" if randf() < 0.5 else "throw2")
@@ -641,6 +652,7 @@ func _update_zombies(delta: float) -> void:
 				zombie.bite = 0.8
 			target.art.get_meta("view").set_health(target.hp, DEFINITIONS[target.kind].hp)
 			if target.hp <= 0:
+				_play_sound("gulp")
 				_remove_entity(plants, target)
 		zombie.art.position.x = zombie.x - 40
 		if zombie.x < 58:
@@ -746,7 +758,7 @@ func _pea_splat(pos: Vector2, row: int) -> void:
 
 func _drop_part(zombie: Dictionary, texture_name: String, track: String) -> void:
 	var part: Sprite2D = zombie.art.get_node(track)
-	var pos: Vector2 = part.to_global(part.texture.get_size() * 0.5)
+	var pos: Vector2 = to_local(part.to_global(part.texture.get_size() * 0.5))
 	# Values decoded from the local original ZombieHead/ZombieArm particle files.
 	var is_head := texture_name == "ZombieHead"
 	var angle := deg_to_rad(randf_range(150, 185) if is_head else randf_range(90, 185))

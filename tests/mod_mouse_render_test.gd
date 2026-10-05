@@ -18,7 +18,8 @@ func step(seconds: float) -> void:
 	for tick in roundi(seconds * 60): game.simulate(1.0 / 60.0)
 	game._update_hud()
 
-func mouse(pos: Vector2, pressed: bool) -> void:
+func mouse(pos: Vector2, pressed: bool, hud := false) -> void:
+	if not hud: pos = game.to_global(pos)
 	var motion := InputEventMouseMotion.new()
 	motion.position = pos
 	viewport.push_input(motion, true)
@@ -40,7 +41,7 @@ func snapshot(name: String) -> Image:
 func run_tests() -> void:
 	DirAccess.make_dir_recursive_absolute("res://build")
 	viewport = SubViewport.new()
-	viewport.size = Vector2i(800, 600)
+	viewport.size = Vector2i(800, 690)
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	root.add_child(viewport)
 	game = load("res://scenes/mod_game.tscn").instantiate()
@@ -66,17 +67,17 @@ func run_tests() -> void:
 	step(0.4)
 	check(game.control.selected_plant == pea and game.control.mouse_held and pea.charge > 0, "real viewport mouse press selects and charges the clicked pea")
 	var img := await snapshot("mod-charging")
-	var bar_pos: Vector2 = game.charge_bar.position
+	var bar_pos: Vector2 = game.charge_bar.global_position
 	var pixel := img.get_pixel(roundi(bar_pos.x + 5), roundi(bar_pos.y + 4))
 	check(absf(pixel.r - 0.45) < 0.03 and pixel.g > 0.9 and pixel.b < 0.3, "GPU renders the progress fill above the lawn")
 	check(bar_pos.y >= 86, "first-row progress stays below the seed bank")
 	check(game.charge_bar.size.y <= 10, "actual themed progress bar stays thin without covering the face")
-	mouse(Vector2(600, 25), false)
+	mouse(Vector2(600, 25), false, true)
 	check(not game.control.fire_held and pea.charge == 0, "mouse release over GUI still cancels charging")
 	game.cooldowns.sunflower = 0
 	game._update_hud()
-	mouse(Vector2(165, 35), true)
-	mouse(Vector2(165, 35), false)
+	mouse(Vector2(165, 35), true, true)
+	mouse(Vector2(165, 35), false, true)
 	check(game.selected == "sunflower" and game.control.selected_plant.is_empty(), "real seed-card click selects planting instead of charging")
 	mouse(game.cell_center(flower.cell), true)
 	mouse(game.cell_center(flower.cell), false)
@@ -116,7 +117,7 @@ func run_tests() -> void:
 			top_y = minf(top_y, hat.to_global(corner).y)
 	hat.set_rank(top.rank)
 	check(top_y >= 86, "charged first-row sunflower cap stays below the seed bank (top %.2f)" % top_y)
-	check(not top.rank_badge.visible and not top.production_meter.visible and game.charge_bar.visible, "first-row sunflower charge replaces overlapping bottom indicators")
+	check(top.rank_badge.visible and top.production_meter.visible and game.charge_bar.visible and game.charge_bar.global_position.y > 90, "expanded layout keeps first-row production and charge feedback visible together")
 	mouse(game.cell_center(top.cell), false)
 	check(top.rank_badge.visible and top.production_meter.visible and not game.charge_bar.visible, "first-row sunflower restores its stopped production indicators on release")
 	await snapshot("mod-top-row")

@@ -2,7 +2,7 @@ config_version=5
 
 [application]
 config/name="PVZ1 · Mod 激活生产与军衔联动"
-config/version="mod-v0.3.0-local"
+config/version="mod-v0.4.0-local"
 run/main_scene="res://scenes/mod_game.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/use_custom_user_dir=true
@@ -10,9 +10,9 @@ config/custom_user_dir_name="PVZ1-Godot-Mod"
 
 [display]
 window/size/viewport_width=800
-window/size/viewport_height=600
+window/size/viewport_height=690
 window/size/window_width_override=1000
-window/size/window_height_override=750
+window/size/window_height_override=863
 window/stretch/mode="canvas_items"
 
 [rendering]

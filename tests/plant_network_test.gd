@@ -59,7 +59,7 @@ func run_tests() -> void:
 	check(game.suns.is_empty() and a.sun_state == "work", "full activation starts Work with no immediate payout")
 	check(b.sun_state == "weak_work" and diagonal.sun_state == "weak_work", "only immediate and diagonal neighbors enter Weak Work")
 	check(c.sun_state == "stop" and c.auto_until == 0, "activation never recursively spreads to a second ring")
-	check(absf(a.auto_until - game.elapsed - 20) < 0.02 and b.auto_until == a.auto_until, "neighbors inherit the activating rank's bounded duration")
+	check(absf(a.auto_until - game.elapsed - 40) < 0.02 and b.auto_until == a.auto_until, "neighbors inherit the activating rank's doubled duration")
 	step(7.9)
 	check(game.suns.is_empty(), "no sunflower payout before the eight-second production interval")
 	step(0.15)
@@ -68,7 +68,7 @@ func run_tests() -> void:
 	var count: int = game.suns.size()
 	for duplicate in 8: game._activate_sun_network(a)
 	check(game.suns.size() == count and a.sun_ready == pending and b.sun_ready == pending, "overlapping activations never reset the interval or mint duplicate sun")
-	check(a.auto_until <= game.elapsed + 20.000001, "repeated activation refreshes without accumulating durations")
+	check(a.auto_until <= game.elapsed + 40.000001, "repeated activation refreshes without accumulating durations")
 	var deadline: float = a.auto_until
 	step(8)
 	check(a.auto_until == deadline and harvest(a.cell) == 60, "automatic production does not extend its own work duration")
@@ -82,7 +82,7 @@ func run_tests() -> void:
 	check(game.suns.is_empty(), "refreshing Work grants no immediate production")
 	step(2.65)
 	check(game.suns.size() == 1, "refreshed Work still produces at the original cycle boundary")
-	step(9.4)
+	step(21.4)
 	check(a.sun_state == "stop", "expired Work automatically becomes Stop")
 	pending = a.sun_ready
 	step(20)
@@ -102,7 +102,7 @@ func run_tests() -> void:
 	check(b.linked_until > b.full_until, "full and linked work keep separate expiration deadlines")
 	step(2.65)
 	check(harvest(b.cell) == 25, "production during direct Work gets full own-rank value")
-	step(9.4)
+	step(21.4)
 	check(b.sun_state == "weak_work" and b.auto_efficiency == 0.75, "expiration of shorter Work restores the longer Weak Work")
 	step(6.1)
 	check(harvest(b.cell) >= 18, "production after Work expiration correctly receives the linked penalty")
@@ -124,13 +124,13 @@ func run_tests() -> void:
 	fresh()
 	a = plant("sunflower", Vector2i(2, 2))
 	game._activate_sun_network(a)
-	game.elapsed += 15
-	game._update_plants(15)
-	check(game.suns.size() == 1 and a.sun_state == "stop" and absf(a.sun_ready - 4) < 0.0001, "large step advances only the twelve working seconds, not its inactive tail")
+	game.elapsed += 27
+	game._update_plants(27)
+	check(game.suns.size() == 3 and a.sun_state == "stop" and absf(a.sun_ready - 8) < 0.0001, "large step advances only the twenty-four working seconds, not its inactive tail")
 	game._activate_sun_network(a)
-	game.elapsed += 12
-	game._update_plants(12)
-	check(game.suns.size() == 3 and absf(a.sun_ready - 8) < 0.0001, "production at an exact expiry boundary happens once and preserves cadence")
+	game.elapsed += 24
+	game._update_plants(24)
+	check(game.suns.size() == 6 and absf(a.sun_ready - 8) < 0.0001, "production at an exact expiry boundary happens once and preserves cadence")
 	for rank in 3:
 		fresh()
 		a = plant("sunflower", Vector2i(2, 2), rank + 1)

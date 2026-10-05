@@ -67,7 +67,7 @@ func run_tests() -> void:
 	game.handle_click(game.cell_center(pea.cell))
 	step(0.2)
 	var motion := InputEventMouseMotion.new()
-	motion.position = game.cell_center(Vector2i(2, 2))
+	motion.position = game.to_global(game.cell_center(Vector2i(2, 2)))
 	game._input(motion)
 	check(not game.control.fire_held and pea.charge == 0, "leaving the original fixed cell cancels mouse hold")
 	game._input(key(KEY_F))

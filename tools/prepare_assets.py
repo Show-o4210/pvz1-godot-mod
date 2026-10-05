@@ -55,7 +55,9 @@ def prepare_v1(extracted: Path):
                    'Zombie_outerarm_upper2.png', 'Zombie_cone1.png',
                    'Zombie_cone2.png', 'Zombie_cone3.png'),
         'particles': ('ZombieArm.png', 'ZombieHead.png', 'Pea_particles.png', 'pea_splats.png'),
-        'sounds': ('throw.ogg', 'throw2.ogg', 'lawnmower.ogg', 'limbs_pop.ogg', 'seedlift.ogg'),
+        'sounds': ('throw.ogg', 'throw2.ogg', 'lawnmower.ogg', 'limbs_pop.ogg', 'seedlift.ogg',
+                   'shovel.ogg', 'plant2.ogg', 'tap2.ogg', 'gulp.ogg', 'readysetplant.ogg',
+                   'awooga.ogg', 'hugewave.ogg', 'siren.ogg', 'finalwave.ogg'),
     }
     for folder, names in groups.items():
         destination = ROOT / 'assets' / ('sounds' if folder == 'sounds' else 'images')

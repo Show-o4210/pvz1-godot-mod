@@ -5,14 +5,14 @@ const TEXTURES := [preload("res://assets/mod/rank1.png"), preload("res://assets/
 const REGIONS := [Rect2(363, 226, 840, 504), Rect2(84, 104, 1292, 854), Rect2(105, 183, 1181, 712)]
 var width := 42.0
 
-func setup(actor: Node2D, kind: String, top_row := false) -> void:
+func setup(actor: Node2D, kind: String) -> void:
 	name = "RankHat"
 	var face: Node2D = actor.get_node("HeadAttachment/anim_face" if kind == "peashooter" else "anim_idle")
 	face.add_child(self)
 	position = Vector2(28, -8) if kind == "sunflower" else Vector2(28, 2)
-	if top_row and kind == "sunflower": position.y += 7
 	width = 40.0 if kind == "sunflower" else 42.0
-	z_index = 5
+	# Sort above the plant's face but below the same-row zombie (+2).
+	z_index = 1
 	region_enabled = true
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	material = actor.get_meta("view").material
